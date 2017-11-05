@@ -13,6 +13,7 @@ namespace Behat\Gherkin;
 use Behat\Gherkin\Exception\LexerException;
 use Behat\Gherkin\Exception\ParserException;
 use Behat\Gherkin\Node\BackgroundNode;
+use Behat\Gherkin\Node\ExampleCrossTableNode;
 use Behat\Gherkin\Node\ExampleTableNode;
 use Behat\Gherkin\Node\FeatureNode;
 use Behat\Gherkin\Node\OutlineNode;
@@ -192,6 +193,8 @@ class Parser
                 return $this->parseOutline();
             case 'Examples':
                 return $this->parseExamples();
+            case 'Examples_Cross':
+                return $this->parseExamplesCross();
             case 'TableRow':
                 return $this->parseTable();
             case 'PyStringOp':
@@ -425,11 +428,13 @@ class Parser
         $tags = $this->popTags();
         $keyword = $token['keyword'];
         $examples = null;
+        /** @var ExampleTableNode[] $example_list */
+        $example_list = [];
         $line = $token['line'];
 
         // Parse description, steps and examples
         $steps = array();
-        while (in_array($this->predictTokenType(), array('Step', 'Examples', 'Newline', 'Text', 'Comment'))) {
+        while (in_array($this->predictTokenType(), array('Step', 'Examples', 'Examples_Cross', 'Newline', 'Text', 'Comment'))) {
             $node = $this->parseExpression();
 
             if ($node instanceof StepNode) {
@@ -437,8 +442,13 @@ class Parser
                 continue;
             }
 
+            if ($node instanceof ExampleCrossTableNode) {
+                $example_list[] = $this->toExampleTableNode($node);
+                continue;
+            }
+
             if ($node instanceof ExampleTableNode) {
-                $examples = $node;
+                $example_list[] = $node;
                 continue;
             }
 
@@ -470,6 +480,19 @@ class Parser
             }
         }
 
+
+        if (!empty($example_list)) {
+            $table_list = [array_slice($example_list[0]->getTable(), 0, 1)];
+            foreach ($example_list as $example_node) {
+                $table = $example_node->getTable();
+                \array_shift($table);
+                $table_list[] = $table;
+            }
+
+            $table = array_merge(...$table_list);
+            $examples = new ExampleTableNode($table, $example_list[0]->getKeyword());
+        }
+
         if (null === $examples) {
             throw new ParserException(sprintf(
                 'Outline should have examples table, but got none for outline "%s" on line: %d%s',
@@ -481,6 +504,55 @@ class Parser
 
         return new OutlineNode(rtrim($title) ?: null, $tags, $steps, $examples, $keyword, $line);
     }
+
+
+    /**
+     * @param ExampleCrossTableNode $examples_cross
+     * @return ExampleTableNode
+     */
+    private function toExampleTableNode(ExampleCrossTableNode $examples_cross)
+    {
+        $table = $examples_cross->getTable();
+        $table_head = \array_shift($table);
+        $cross_table = $this->buildCrossTable($table);
+        \array_unshift($cross_table, $table_head);
+        return new ExampleTableNode($cross_table, $examples_cross->getKeyword());
+    }
+
+    private function buildCrossTable($original_table)
+    {
+        $cross_table = [];
+        foreach ($original_table as $row_table) {
+            $value = \reset($row_table);
+            if ('' === $value) {
+                continue;
+            }
+
+            $cross_table[] = [$value];
+        }
+
+        $this->_buildCrossTable($original_table, $cross_table, 1);
+        return $cross_table;
+    }
+
+    private function _buildCrossTable(array $original_table, &$cross_table, $col)
+    {
+        $old_table = $cross_table;
+        $cross_table = [];
+        foreach ($original_table as $original_row) {
+            if ('' === $original_row[$col]) {
+                continue;
+            }
+            foreach ($old_table as $old_row) {
+                $cross_table[] = array_merge($old_row, [$original_row[$col]]);
+            }
+        }
+
+        if (isset(reset($original_table)[$col+1])) {
+            $this->_buildCrossTable($original_table, $cross_table, $col+1);
+        }
+    }
+
 
     /**
      * Parses step token & returns it's node.
@@ -525,6 +597,20 @@ class Parser
         $keyword = $token['keyword'];
 
         return new ExampleTableNode($this->parseTableRows(), $keyword);
+    }
+
+    /**
+     * Parses examples table node.
+     *
+     * @return ExampleTableNode
+     */
+    protected function parseExamplesCross()
+    {
+        $token = $this->expectTokenType('Examples_Cross');
+
+        $keyword = $token['keyword'];
+
+        return new ExampleCrossTableNode($this->parseTableRows(), $keyword);
     }
 
     /**

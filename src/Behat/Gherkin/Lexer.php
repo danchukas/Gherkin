@@ -226,6 +226,7 @@ class Lexer
             ?: $this->scanBackground()
             ?: $this->scanOutline()
             ?: $this->scanExamples()
+            ?: $this->scanExamplesCross()
             ?: $this->scanFeature()
             ?: $this->scanTags()
             ?: $this->scanTableRow()
@@ -281,7 +282,7 @@ class Lexer
         // turn off PyString and Table searching
         if ('Feature' === $type || 'Scenario' === $type || 'Outline' === $type) {
             $this->allowMultilineArguments = false;
-        } elseif ('Examples' === $type) {
+        } elseif ('Examples' === $type || 'Examples_Cross' === $type) {
             $this->allowMultilineArguments = true;
         }
 
@@ -385,6 +386,16 @@ class Lexer
     protected function scanExamples()
     {
         return $this->scanInputForKeywords($this->getKeywords('Examples'), 'Examples');
+    }
+
+    /**
+     * Scans Scenario Outline Examples_Cross from input & returns it if found.
+     *
+     * @return null|array
+     */
+    protected function scanExamplesCross()
+    {
+        return $this->scanInputForKeywords($this->getKeywords('Examples_Cross'), 'Examples_Cross');
     }
 
     /**

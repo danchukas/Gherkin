@@ -123,6 +123,16 @@ class ArrayKeywords implements KeywordsInterface
     }
 
     /**
+     * Returns Examples keywords (splitted by "|").
+     *
+     * @return string
+     */
+    public function getExamples_CrossKeywords()
+    {
+        return $this->keywords[$this->language]['examples_cross'];
+    }
+
+    /**
      * Returns Given keywords (splitted by "|").
      *
      * @return string
