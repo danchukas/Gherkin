@@ -1,5 +1,5 @@
 {
-    "name":         "behat/gherkin",
+    "name":         "danchukas/gherkin",
     "description":  "Gherkin DSL parser for PHP 5.3",
     "keywords":     ["BDD", "parser", "DSL", "Behat", "Gherkin", "Cucumber"],
     "homepage":     "http://behat.org/",
