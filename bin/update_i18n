@@ -40,6 +40,8 @@ foreach (json_decode($json, true) as $lang => $keywords) {
         $langMessages[$type] = implode('|', $words);
     }
 
+    $langMessages['examples_cross'] = implode('|', ['Examples Cross']);
+
     // ensure that the order of keys is consistent between updates
     ksort($langMessages);
 
