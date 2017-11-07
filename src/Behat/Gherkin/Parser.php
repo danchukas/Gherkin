@@ -531,7 +531,10 @@ class Parser
             $cross_table[] = [$value];
         }
 
-        $this->_buildCrossTable($original_table, $cross_table, 1);
+        if (count($original_table[0]) > 1) {
+            $this->_buildCrossTable($original_table, $cross_table, 1);
+        }
+
         return $cross_table;
     }
 
