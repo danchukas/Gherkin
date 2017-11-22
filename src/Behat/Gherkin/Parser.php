@@ -551,6 +551,10 @@ class Parser
             }
         }
 
+        if (empty($cross_table)) {
+            $cross_table = $old_table;
+        }
+
         if (isset(reset($original_table)[$col+1])) {
             $this->_buildCrossTable($original_table, $cross_table, $col+1);
         }
